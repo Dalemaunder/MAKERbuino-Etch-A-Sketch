@@ -1,0 +1,141 @@
+//File Name: Etch_A_Sketch
+//Purpose: Begin learning to draw objects on the screen and move them as a player.
+//Credits: Dale Maunder, 29/9/2017
+
+//Libraries:
+#include <SPI.h>
+#include <Gamebuino.h>
+
+//Gamebuino object
+Gamebuino gb;
+
+//Character variables:
+int char_x = LCDWIDTH/2; //set the horizontal position to the middle of the screen
+int char_y = LCDHEIGHT/2; //set the vertical position to the middle of the screen
+int char_size = 1;
+
+const byte logo[] PROGMEM = {
+  //Logo X(horizontal) Y(vertical) dimensions
+  64, 23,
+  //Logo bitmap, each 0 is a blank pixel, change to a 1 to draw a pixel
+  B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000,
+  B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000,
+  B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000,
+  B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000,
+  B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000,
+  B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000,
+  B00000000, B00001111, B11001111, B11111100, B11111111, B00110000, B11000000, B00000000,
+  B00000000, B00001100, B00000000, B11000000, B11000011, B00110000, B11000000, B00000000,
+  B00000000, B00001111, B00000000, B11000000, B11000000, B00111111, B11000000, B00000000,
+  B00000000, B00001100, B00000000, B11000000, B11000011, B00110000, B11000000, B00000000,
+  B00000000, B00001111, B11000000, B11000000, B11111111, B00110000, B11000000, B00000000,
+  B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000,
+  B00000000, B00000000, B00000000, B00000011, B00000000, B00000000, B00000000, B00000000,
+  B00000000, B00000000, B00000000, B00001100, B11000000, B00000000, B00000000, B00000000,
+  B00000000, B00000000, B00000011, B11001111, B11001111, B00000000, B00000000, B00000000,
+  B00000000, B00000000, B00000000, B00001100, B11000000, B00000000, B00000000, B00000000,
+  B00000000, B00000000, B00000000, B00001100, B11000000, B00000000, B00000000, B00000000,
+  B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000,
+  B00001111, B11001100, B11001111, B11001111, B11111100, B11111111, B00110000, B11000000,
+  B00001100, B00001100, B11001100, B00000000, B11000000, B11000011, B00110000, B11000000,
+  B00001111, B11001111, B00001111, B00000000, B11000000, B11000000, B00111111, B11000000,
+  B00000000, B11001100, B11001100, B00000000, B11000000, B11000011, B00110000, B11000000,
+  B00001111, B11001100, B11001111, B11000000, B11000000, B11111111, B00110000, B11000000,
+};
+
+void initGame(){
+  //Initilization function, added for posterity
+  gb.setFrameRate(30);
+}
+
+void reset(){
+  //Reset function to clear screen and reset settings
+  gb.display.clear();
+  gb.display.setColor(BLACK);
+  if(!gb.display.persistence){
+    gb.display.persistence = true;
+  }
+}
+
+void setup(){
+  //Initialize the Gamebuino object
+  gb.begin();
+  //Shows the start menu
+  gb.titleScreen(F(""), logo);
+  initGame();
+  reset();
+}
+
+void loop(){
+  //If statement that returns true when it's time to render a new frame (20 fps)
+  if(gb.update()){
+
+    //Character controls
+    if(gb.buttons.repeat(BTN_RIGHT,1)){
+      char_x++;
+    }
+    if(gb.buttons.repeat(BTN_LEFT,1)){
+      char_x--;
+    }
+    if(gb.buttons.repeat(BTN_DOWN,1)){
+      char_y++;
+    }
+    if(gb.buttons.repeat(BTN_UP,1)){
+      char_y--;
+    }
+    
+    //Utility buttons
+    if(gb.buttons.pressed(BTN_A)){
+      if(char_size > 1){
+        char_size--;
+      }
+    }
+    if(gb.buttons.pressed(BTN_B)){
+      if(char_size <= 7){
+        char_size++;
+      }
+    }
+    if(gb.buttons.pressed(BTN_C)){
+      reset();
+    }
+    if(gb.buttons.held(BTN_C, 45)){
+      gb.titleScreen(F("Etch-A-Sketch"));
+    }
+
+    
+    //Define screen bounds
+    if(char_x < 1){
+      char_x = 1;
+    }
+    if((char_x + char_size + 1) > LCDWIDTH){
+      char_x = LCDWIDTH - char_size - 1;
+    }
+    
+    if(char_y < 1){
+      char_y = 1;
+    }
+    if((char_y + char_size + 1) > LCDHEIGHT){
+      char_y = LCDHEIGHT - char_size - 1;
+    }
+    
+    draw(); 
+  }
+}
+
+void draw(){
+  //Draws the character
+  gb.display.fillRect(char_x, char_y, char_size, char_size);
+
+  //Deprecated test characters:
+  //Note: This round rect is perfect for a health pickup!
+  //gb.display.drawRoundRect(char_x, char_y, char_size, char_size, char_size);
+
+  //Note: This round rect is good for a reticle
+  //gb.display.drawRoundRect(char_x, char_y, (char_size + 2), (char_size + 2), char_size);
+
+  //Draws the screen border
+  gb.display.drawFastVLine(0, 0, LCDHEIGHT);
+  gb.display.drawFastHLine(0, 0, LCDWIDTH);
+  gb.display.drawFastVLine(LCDWIDTH - 1, 0, LCDHEIGHT);
+  gb.display.drawFastHLine(0, LCDHEIGHT - 1, LCDWIDTH);
+}
